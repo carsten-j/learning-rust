@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1 — Ownership &amp; Moves</title>
+<style>
+  :root{
+    --ink:#23201d; --muted:#6b6258; --bg:#fbf9f6; --rule:#e7e0d6;
+    --rust:#b7410e; --rust-dk:#8f320a;
+    --code-bg:#2b2620; --code-fg:#f3ede4; --code-com:#9aa884; --code-str:#e6b35a;
+    --slate:#5d7184; --slate-bg:#eef2f6;
+    --gold:#c08a00; --gold-bg:#fff7e0;
+    --green:#2e7d32; --green-bg:#eaf4ea;
+    --purple:#5e35b1; --purple-bg:#f1ecfa;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.7; font-size:18px;
+  }
+  .wrap{max-width:800px; margin:0 auto; padding:0 26px 90px}
+  header.hero{
+    border-bottom:3px solid var(--rust); padding:46px 0 26px; margin-bottom:8px;
+  }
+  .eyebrow{font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--rust); font-weight:700; margin:0 0 10px}
+  h1{font-size:40px; line-height:1.12; margin:0 0 12px; letter-spacing:-.02em}
+  .sub{font-size:20px; color:var(--muted); margin:0 0 20px}
+  .meta{display:flex; flex-wrap:wrap; gap:8px; font-size:13.5px}
+  .pill{background:#fff; border:1px solid var(--rule); border-radius:999px; padding:4px 12px; color:var(--muted)}
+  .pill.go{background:#eafaf0; border-color:#bfe6cd; color:#1d6b3a; font-weight:600}
+  h2{font-size:27px; margin:48px 0 6px; letter-spacing:-.01em; padding-top:8px}
+  h2 .n{color:var(--rust); font-variant-numeric:tabular-nums; margin-right:10px}
+  h3{font-size:20px; margin:30px 0 4px}
+  p{margin:14px 0}
+  a{color:var(--rust); text-decoration-thickness:1px; text-underline-offset:2px}
+  a:hover{color:var(--rust-dk)}
+  strong{font-weight:700}
+  em{font-style:italic}
+  .lead{font-size:19.5px}
+  ul,ol{margin:14px 0; padding-left:24px}
+  li{margin:7px 0}
+  hr{border:0; border-top:1px solid var(--rule); margin:42px 0}
+
+  /* code */
+  pre{
+    background:var(--code-bg); color:var(--code-fg); border-radius:10px;
+    padding:16px 18px; overflow-x:auto; font-size:15px; line-height:1.6; margin:14px 0 0;
+    font-family:"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    box-shadow:0 1px 0 rgba(0,0,0,.04);
+  }
+  code{font-family:"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace; font-size:.92em}
+  p code,li code,td code{background:#efe9e0; color:var(--rust-dk); padding:1px 6px; border-radius:5px; font-size:.86em}
+  pre code{background:none; color:inherit; padding:0}
+  .cmt{color:var(--code-com)}
+  .err{color:#ff8a7a}
+  .ok{color:#8fd19e}
+
+  .example{margin:24px 0}
+  .run-btn{
+    display:inline-flex; align-items:center; gap:7px; margin-top:10px;
+    background:var(--rust); color:#fff; border:0; border-radius:8px;
+    padding:9px 15px; font-size:14.5px; font-weight:600; cursor:pointer;
+    font-family:inherit; transition:background .15s;
+  }
+  .run-btn:hover{background:var(--rust-dk)}
+  .run-btn:active{transform:translateY(1px)}
+  .hint{font-size:14px; color:var(--muted); margin-top:8px}
+
+  /* callouts */
+  .box{border-left:4px solid #ccc; border-radius:0 10px 10px 0; padding:14px 18px; margin:20px 0; background:#fff}
+  .box .tag{font-size:12.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; display:block; margin-bottom:4px}
+  .box p:first-of-type{margin-top:2px} .box p:last-child{margin-bottom:0}
+  .ccpp{border-color:var(--slate); background:var(--slate-bg)} .ccpp .tag{color:var(--slate)}
+  .rule{border-color:var(--rust); background:#fbeee7} .rule .tag{color:var(--rust)}
+  .aha{border-color:var(--gold); background:var(--gold-bg)} .aha .tag{color:#9c7000}
+  .mission{border-color:var(--green); background:var(--green-bg)} .mission .tag{color:var(--green)}
+  .predict{border-color:var(--purple); background:var(--purple-bg)} .predict .tag{color:var(--purple)}
+
+  .rules-list{counter-reset:r; list-style:none; padding-left:0; margin:16px 0}
+  .rules-list li{counter-increment:r; position:relative; padding:10px 10px 10px 52px; margin:10px 0; background:#fbeee7; border-radius:10px}
+  .rules-list li::before{content:counter(r); position:absolute; left:12px; top:50%; transform:translateY(-50%);
+    width:28px; height:28px; background:var(--rust); color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px}
+
+  details{margin-top:12px; background:#fff; border:1px solid var(--rule); border-radius:10px; padding:0 16px}
+  details[open]{padding-bottom:12px}
+  summary{cursor:pointer; font-weight:600; padding:13px 0; color:var(--purple); list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"▸ "; color:var(--purple)}
+  details[open] summary::before{content:"▾ "}
+
+  table{border-collapse:collapse; width:100%; margin:18px 0; font-size:16px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--rule); vertical-align:top}
+  th{font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted)}
+  tbody tr:hover{background:#fff}
+
+  sup a{font-size:.7em; text-decoration:none; padding:0 1px; color:var(--rust)}
+  .refs{font-size:15px; color:var(--muted)}
+  .refs li{margin:6px 0}
+  .ask{background:#fff; border:1px dashed var(--rust); border-radius:12px; padding:18px 20px; margin:34px 0}
+  .ask .tag{color:var(--rust); font-weight:700}
+  footer{margin-top:50px; padding-top:20px; border-top:1px solid var(--rule); font-size:14.5px; color:var(--muted)}
+
+  @media (max-width:600px){ h1{font-size:31px} body{font-size:17px} .wrap{padding:0 18px 70px} }
+  @media print{
+    body{background:#fff; font-size:12pt}
+    .run-btn,.no-print{display:none !important}
+    pre{background:#f4f1ec; color:#1c1a17; border:1px solid #ddd}
+    .cmt{color:#5a6b4a}.err{color:#a3301f}.ok{color:#2e7d32}
+    details{border:1px solid #ccc} details summary{color:#000}
+    a{color:#000; text-decoration:underline}
+    .box,.rules-list li,details{break-inside:avoid}
+    header.hero{padding-top:0}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <p class="eyebrow">Rust → Python · Lesson 1</p>
+  <h1>Ownership &amp; Moves</h1>
+  <p class="sub">How Rust frees your memory <em>for</em> you — and refuses to let you use-after-free.</p>
+  <div class="meta">
+    <span class="pill">~15&nbsp;min</span>
+    <span class="pill">Concepts → practice</span>
+    <span class="pill go">✓ No install — runs in your browser</span>
+  </div>
+</header>
+
+<p class="lead">This is <em>the</em> idea that makes Rust different from every language you've used. Get this, and borrowing, lifetimes, and the safe Rust↔Python boundary all follow. The official book puts it bluntly:</p>
+
+<div class="box rule">
+  <span class="tag">From the Rust Book</span>
+  <p>"When you understand ownership, you'll have a solid foundation for understanding the features that make Rust unique."<sup><a href="#r1">1</a></sup></p>
+</div>
+
+<p>You learn concepts first here, then you'll <strong>predict</strong> what the compiler does and <strong>run</strong> each snippet to check yourself. Nothing to install — every <span style="color:var(--rust);font-weight:600">▶&nbsp;Run</span> button opens the code, pre-filled, in the <a href="https://play.rust-lang.org/" target="_blank" rel="noopener">Rust Playground</a>.</p>
+
+<hr>
+
+<h2><span class="n">1</span>The problem you already know</h2>
+
+<p>You wrote C and C++. So you already know the hardest unsolved problem in that world: <strong>who frees this memory, and when?</strong> The book names the exact three ways it goes wrong:</p>
+
+<div class="box ccpp">
+  <span class="tag">↩ From your C/C++ days</span>
+  <p>"If we forget, we'll waste memory. If we do it too early, we'll have an invalid variable. If we do it twice, that's a bug too."<sup><a href="#r1">1</a></sup></p>
+  <p style="margin-top:8px">In C terms: <strong>forget <code>free</code></strong> → leak. <strong><code>free</code> too early</strong> → dangling pointer / use-after-free. <strong><code>free</code> twice</strong> → double-free → heap corruption → CVE.</p>
+</div>
+
+<p>Other languages answer this with a <em>garbage collector</em> (Python, Java, C#) — a runtime that periodically figures out what's safe to free. That costs runtime work and unpredictable pauses. Rust answers it a third way: the compiler tracks who owns each value and inserts the <code>free</code> for you, at compile time, for <em>free</em>:</p>
+
+<div class="box rule">
+  <span class="tag">From the Rust Book</span>
+  <p>"None of the features of ownership will slow down your program while it's running."<sup><a href="#r1">1</a></sup></p>
+</div>
+
+<h2><span class="n">2</span>Stack and heap — a 30-second refresh</h2>
+
+<p>Ownership is really a set of rules about <em>who frees the heap allocation</em>, so let's reload the two memory regions. Nothing here is new to you — it's the same model as C.</p>
+
+<table>
+  <thead><tr><th>Stack</th><th>Heap</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Fixed, known size at compile time. LIFO — "a stack of plates."<sup><a href="#r1">1</a></sup></td>
+      <td>Dynamic size. You ask the allocator for space; it finds a spot and hands back a <strong>pointer</strong>.<sup><a href="#r1">1</a></sup></td>
+    </tr>
+    <tr>
+      <td>Push/pop is instant — the slot is always "the top."</td>
+      <td>Allocating searches for space; reading means <em>following a pointer</em> — both slower.</td>
+    </tr>
+    <tr>
+      <td><code>i32</code>, <code>bool</code>, <code>char</code>, <code>f64</code>, fixed arrays…</td>
+      <td><code>String</code>, <code>Vec&lt;T&gt;</code>, <code>Box&lt;T&gt;</code> — anything growable.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Key picture: a Rust <code>String</code> is a little 3-field struct <em>on the stack</em> — a pointer to the bytes, a length, and a capacity — pointing at the actual text <em>on the heap</em>. Hold that image; the whole lesson turns on it.</p>
+
+<h2><span class="n">3</span>The three rules of ownership</h2>
+
+<p>This is the entire model. Verbatim from the book<sup><a href="#r1">1</a></sup>:</p>
+
+<ol class="rules-list">
+  <li>Each value in Rust has an <strong>owner</strong>.</li>
+  <li>There can be only <strong>one owner</strong> at a time.</li>
+  <li>When the owner <strong>goes out of scope</strong>, the value is <strong>dropped</strong> (freed).</li>
+</ol>
+
+<p>"Goes out of scope" means execution reaches the closing <code>}</code> the value was declared in. At that point Rust automatically calls a function named <code>drop</code> — the value's cleanup code — for you. You never write <code>free</code>.</p>
+
+<div class="box ccpp">
+  <span class="tag">↩ This is RAII — the book says so</span>
+  <p>"In C++, this pattern of deallocating resources at the end of an item's lifetime is sometimes called <em>Resource Acquisition Is Initialization (RAII)</em>. The <code>drop</code> function in Rust will be familiar to you if you've used RAII patterns."<sup><a href="#r1">1</a></sup></p>
+  <p style="margin-top:8px">So: it's the destructor-at-end-of-scope you knew from C++ — but now it's the <em>language-wide default</em>, not something you opt into with a smart-pointer class.</p>
+</div>
+
+<div class="example">
+<pre><code>fn main() {
+    {
+        let s = String::from("hello"); <span class="cmt">// s owns heap text from here</span>
+        <span class="cmt">// ... use s ...</span>
+    } <span class="cmt">// &lt;- s goes out of scope: drop(s) runs, heap freed. Automatically.</span>
+}</code></pre>
+<button class="run-btn">▶ Run on the Playground</button>
+<p class="hint">It compiles and does nothing visible — that's the point. The free happened, and you didn't write it.</p>
+</div>
+
+<h2><span class="n">4</span>The surprise: assignment can <em>move</em></h2>
+
+<p>Here's where Rust diverges from everything you know. Watch what happens when you assign one <code>String</code> to another:</p>
+
+<div class="example">
+<pre><code>fn main() {
+    let s1 = String::from("hello");
+    let s2 = s1;
+
+    println!("{s1}, world!"); <span class="err">// will this compile?</span>
+}</code></pre>
+</div>
+
+<p>In C++, <code>s2 = s1</code> would copy the struct's three fields, leaving two pointers to the same heap text — and at scope end <em>both</em> destructors would <code>free</code> it. That's a <strong>double-free</strong>. The book is explicit about the danger:</p>
+
+<div class="box rule">
+  <span class="tag">From the Rust Book</span>
+  <p>"When <code>s2</code> and <code>s1</code> go out of scope, they will both try to free the same memory. This is known as a <em>double free</em> error… Freeing memory twice can lead to memory corruption, which can potentially lead to security vulnerabilities."<sup><a href="#r1">1</a></sup></p>
+</div>
+
+<p>Rust's fix is radical and simple. After <code>let s2 = s1;</code>, it copies the three stack fields (pointer, length, capacity) — but <strong>not</strong> the heap data — and then declares <code>s1</code> <em>invalid</em>. Only <code>s2</code> owns the text now (rule&nbsp;2: one owner). So only one <code>drop</code> ever runs.</p>
+
+<div class="box aha">
+  <span class="tag">★ The key word: move</span>
+  <p>"Because Rust also invalidates the first variable, instead of being called a shallow copy, it's known as a <em>move</em>. In this example, we would say that <code>s1</code> was <em>moved</em> into <code>s2</code>."<sup><a href="#r1">1</a></sup></p>
+  <p style="margin-top:8px">If you know C++: this is the <em>default</em> behaviour of <code>std::move</code> / <code>unique_ptr</code> — ownership transfers — but applied automatically to every heap-owning type, and <strong>enforced by the compiler</strong> so the moved-from variable can't be touched.</p>
+</div>
+
+<p>So the snippet above does <strong>not</strong> compile. Rust stops you at build time with a famously helpful error:</p>
+
+<div class="example">
+<pre><code><span class="err">error[E0382]: borrow of moved value: `s1`</span>
+ --> src/main.rs:5:15
+  |
+3 |     let s2 = s1;
+  |              -- value moved here
+4 |
+5 |     println!("{s1}, world!");
+  |               <span class="err">^^^^ value borrowed here after move</span></code></pre>
+</div>
+
+<p>Note the design choice this encodes: <strong>Rust never deep-copies your data automatically.</strong> Any automatic operation is cheap (just a few stack words).<sup><a href="#r1">1</a></sup> If you <em>want</em> a real deep copy, you ask for it by name with <code>.clone()</code> — more on that in the exercises.</p>
+
+<h2><span class="n">5</span>The exception: <code>Copy</code> types</h2>
+
+<p>But you've surely written <code>let y = x;</code> with integers a thousand times and used both afterwards. Why doesn't <em>that</em> move? Because integers live entirely on the stack — there's no heap allocation to have two owners of, so copying them is trivially cheap and safe.</p>
+
+<p>Rust marks such types with the <strong><code>Copy</code></strong> trait: assignment copies the value and <em>both</em> variables stay valid.<sup><a href="#r1">1</a></sup> The rule of thumb:</p>
+
+<table>
+  <thead><tr><th>Behaviour</th><th>Which types</th><th>After <code>let b = a;</code></th></tr></thead>
+  <tbody>
+    <tr><td><strong>Copy</strong> (stays valid)</td><td>Stack-only scalars: all integers, <code>f64</code>, <code>bool</code>, <code>char</code>, and tuples of <em>only</em> those (e.g. <code>(i32, i32)</code>).<sup><a href="#r1">1</a></sup></td><td><code>a</code> still usable ✓</td></tr>
+    <tr><td><strong>Move</strong> (invalidated)</td><td>Anything owning a heap allocation or resource: <code>String</code>, <code>Vec&lt;T&gt;</code>, <code>Box&lt;T&gt;</code>, file handles… <code>(i32, String)</code> too.</td><td><code>a</code> is dead ✗</td></tr>
+  </tbody>
+</table>
+
+<p>One clean line from the book to keep: anything "that requires allocation or is some form of resource" cannot be <code>Copy</code>.<sup><a href="#r1">1</a></sup></p>
+
+<hr>
+
+<h2><span class="n">6</span>Practice — predict, then verify</h2>
+
+<p>This is the loop. For each snippet: decide <em>in your head</em> whether it compiles (and if not, which variable is the problem), then open the reveal, then hit <strong>▶ Run</strong> to confirm with the real compiler. Reason from the rules, not from memory of other languages.</p>
+
+<!-- EX1 -->
+<div class="box predict">
+  <span class="tag">Exercise 1 — does this compile?</span>
+<pre style="margin-top:10px"><code>fn main() {
+    let a = String::from("rust");
+    let b = a;
+    println!("{a} and {b}");
+}</code></pre>
+</div>
+<details>
+  <summary>Reveal</summary>
+  <p><strong>No.</strong> <code>String</code> is heap-owning, so <code>let b = a;</code> <em>moves</em> ownership to <code>b</code> and invalidates <code>a</code> (rule 2). The <code>{a}</code> then fails with <code>error[E0382]: borrow of moved value: 'a'</code>. <code>b</code> alone would be fine.</p>
+  <div class="example" style="margin-bottom:0">
+    <button class="run-btn">▶ Run on the Playground</button>
+    <p class="hint">Read the error. The "value moved here" / "value borrowed here after move" annotations point at the exact two lines.</p>
+  </div>
+</details>
+
+<!-- EX2 -->
+<div class="box predict" style="margin-top:26px">
+  <span class="tag">Exercise 2 — and this one?</span>
+<pre style="margin-top:10px"><code>fn main() {
+    let x = 5;
+    let y = x;
+    println!("{x} and {y}");
+}</code></pre>
+</div>
+<details>
+  <summary>Reveal</summary>
+  <p><strong>Yes.</strong> <code>5</code> is an <code>i32</code> — a stack-only <code>Copy</code> type. <code>let y = x;</code> <em>copies</em> it; <code>x</code> stays valid. Same syntax as Exercise 1, opposite outcome — and the <em>only</em> thing that changed is whether the type owns heap memory. That distinction is the whole game.</p>
+  <div class="example" style="margin-bottom:0">
+    <button class="run-btn">▶ Run on the Playground</button>
+    <p class="hint">Prints <code>5 and 5</code>.</p>
+  </div>
+</details>
+
+<!-- EX3 -->
+<div class="box predict" style="margin-top:26px">
+  <span class="tag">Exercise 3 — fix Exercise 1</span>
+  <p style="margin:6px 0 0">You want <em>two independent strings</em>. <code>.clone()</code> makes a real deep copy of the heap data, so each variable owns its own. Predict: does this compile, and what prints?</p>
+<pre style="margin-top:10px"><code>fn main() {
+    let a = String::from("rust");
+    let b = a.clone();
+    println!("{a} and {b}");
+}</code></pre>
+</div>
+<details>
+  <summary>Reveal</summary>
+  <p><strong>Yes</strong> — prints <code>rust and rust</code>. <code>a.clone()</code> allocates a second heap buffer and copies the bytes, so <code>a</code> is never moved; both own separate data and both get dropped exactly once. The cost (an allocation + copy) is now <em>visible in the code</em> — that's the design: cheap things happen silently, expensive things you spell out.</p>
+  <div class="example" style="margin-bottom:0">
+    <button class="run-btn">▶ Run on the Playground</button>
+  </div>
+</details>
+
+<!-- EX4 -->
+<div class="box predict" style="margin-top:26px">
+  <span class="tag">Exercise 4 — the cliffhanger</span>
+  <p style="margin:6px 0 0">Passing a value to a function is an assignment too — so it <em>moves</em>. Predict carefully:</p>
+<pre style="margin-top:10px"><code>fn main() {
+    let s = String::from("hello");
+    shout(s);
+    println!("{s}");
+}
+
+fn shout(text: String) {
+    println!("{}!", text);
+}</code></pre>
+</div>
+<details>
+  <summary>Reveal</summary>
+  <p><strong>No.</strong> Calling <code>shout(s)</code> moves <code>s</code> <em>into</em> the parameter <code>text</code>; ownership leaves <code>main</code>. At the end of <code>shout</code>, <code>text</code> is dropped and the string is freed. Back in <code>main</code>, <code>s</code> is invalid → <code>E0382</code> again.</p>
+  <p>This feels too strict, right? You just wanted to <em>look at</em> the string, not hand it over forever. That tension is exactly what the next lesson resolves — you'll <em>borrow</em> a value with <code>&amp;</code> instead of moving it. Sit with the discomfort; it's the setup.</p>
+  <div class="example" style="margin-bottom:0">
+    <button class="run-btn">▶ Run on the Playground</button>
+  </div>
+</details>
+
+<hr>
+
+<h2><span class="n">7</span>Why this matters for calling Rust from Python</h2>
+
+<div class="box mission">
+  <span class="tag">⌖ Mission link</span>
+  <p>Your goal is a Rust core that Python can <code>import</code>. When Rust hands a value across that boundary — or Python hands one in — <em>something</em> has to decide who owns it and who frees it. Get that wrong in a C extension and you get exactly the double-frees and use-after-frees from §1, now crashing the Python interpreter.</p>
+  <p style="margin-top:8px">Ownership is what makes the Rust↔Python boundary <em>safe by construction</em>: the binding layer (<a href="https://pyo3.rs/" target="_blank" rel="noopener">PyO3</a>) is built on these exact move/borrow rules. It's also why Rust can safely <em>release Python's GIL</em> and run real parallel work — because the compiler has already proven nothing is sharing what it shouldn't. Everything you just learned is load-bearing for the milestone.</p>
+</div>
+
+<div class="ask">
+  <span class="tag">I'm your teacher — ask me things</span>
+  <p style="margin:6px 0 0">Stuck on an error message? Want to know why <code>clone</code> exists but <code>copy</code> isn't a method? Curious how this compares to C++ <code>unique_ptr</code> or Python references? <strong>Just ask me in the chat.</strong> Good questions here are how the concept sets.</p>
+</div>
+
+<h3>Before you go — a 20-second self-check</h3>
+<p>Answer these out loud (or ask me to quiz you):</p>
+<ol>
+  <li>In one sentence, what are the three rules of ownership?</li>
+  <li>Why does <code>let b = a;</code> kill <code>a</code> for a <code>String</code> but not for an <code>i32</code>?</li>
+  <li>What's the difference between a <em>move</em> and a <code>.clone()</code>?</li>
+</ol>
+<p>If those feel solid, tell me and we'll do <strong>Lesson 2 — Borrowing &amp; references</strong>: how to let a function use your <code>String</code> without taking it (the fix for Exercise 4).</p>
+
+<footer>
+  <p><strong>References</strong></p>
+  <ol class="refs">
+    <li id="r1"><a href="https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html" target="_blank" rel="noopener">The Rust Programming Language — Ch. 4.1, "What Is Ownership?"</a> — all quoted passages, the three rules, the move/Copy distinction, and the RAII note.</li>
+    <li><a href="https://doc.rust-lang.org/std/string/struct.String.html" target="_blank" rel="noopener">std::string::String</a> — the pointer/length/capacity layout.</li>
+    <li><a href="https://pyo3.rs/" target="_blank" rel="noopener">PyO3 User Guide</a> — the Rust↔Python binding layer referenced in §7.</li>
+  </ol>
+  <p style="margin-top:18px">Keep the one-page <a href="../reference/ownership-and-moves.html">Ownership &amp; Moves reference card</a> handy — print it, pin it.</p>
+</footer>
+
+</div>
+
+<script>
+  // Wire every "Run" button to open the nearest code block, pre-filled, in the Rust Playground.
+  document.querySelectorAll('.run-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      // find the code: previous <pre> in the same .example, else the nearest preceding <pre>
+      var container = btn.closest('.example') || btn.parentElement;
+      var pre = container.querySelector('pre');
+      if(!pre){ // reveal buttons: code lives in the .predict box just above the <details>
+        var det = btn.closest('details');
+        if(det && det.previousElementSibling) pre = det.previousElementSibling.querySelector('pre');
+      }
+      if(!pre){ alert('Could not find the code for this button.'); return; }
+      var code = pre.innerText;
+      var url = 'https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&code=' + encodeURIComponent(code);
+      window.open(url, '_blank', 'noopener');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference — Ownership &amp; Moves</title>
+<style>
+  :root{
+    --ink:#23201d; --muted:#6b6258; --bg:#fff; --rule:#e2dccf;
+    --rust:#b7410e; --rust-dk:#8f320a; --rust-bg:#fbeee7;
+    --slate:#5d7184; --slate-bg:#eef2f6;
+    --green:#2e7d32; --green-bg:#eaf4ea;
+    --code-bg:#f4f1ec;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:#efeae1; color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5; font-size:15px; padding:24px}
+  .card{max-width:920px; margin:0 auto; background:var(--bg); border-radius:14px; padding:30px 34px;
+    box-shadow:0 6px 30px rgba(0,0,0,.10)}
+  header{border-bottom:3px solid var(--rust); padding-bottom:12px; margin-bottom:6px;
+    display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px}
+  h1{font-size:25px; margin:0; letter-spacing:-.01em}
+  h1 small{color:var(--rust); font-weight:700; font-size:13px; letter-spacing:.12em; text-transform:uppercase; display:block; margin-bottom:3px}
+  .tagline{color:var(--muted); font-size:14px; font-style:italic}
+  h2{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--rust); margin:22px 0 8px; border-bottom:1px solid var(--rule); padding-bottom:4px}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:22px}
+  @media (max-width:680px){ .grid{grid-template-columns:1fr} body{padding:10px} .card{padding:20px} }
+  p{margin:8px 0}
+  code{font-family:"SF Mono",SFMono-Regular,Menlo,Consolas,monospace; font-size:.86em;
+    background:#efe9e0; color:var(--rust-dk); padding:1px 5px; border-radius:4px}
+  pre{background:var(--code-bg); border:1px solid var(--rule); border-radius:8px; padding:11px 13px;
+    overflow-x:auto; margin:8px 0; font-size:12.5px; line-height:1.5}
+  pre code{background:none; color:var(--ink); padding:0; font-size:12.5px}
+  .cmt{color:#6b7a55} .bad{color:#a3301f; font-weight:600} .good{color:#2e7d32; font-weight:600}
+  ol.rules{counter-reset:r; list-style:none; padding:0; margin:6px 0}
+  ol.rules li{counter-increment:r; position:relative; padding:7px 8px 7px 40px; margin:7px 0;
+    background:var(--rust-bg); border-radius:8px; font-size:14.5px}
+  ol.rules li::before{content:counter(r); position:absolute; left:8px; top:50%; transform:translateY(-50%);
+    width:23px; height:23px; background:var(--rust); color:#fff; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px}
+  table{border-collapse:collapse; width:100%; font-size:13.5px; margin:6px 0}
+  th,td{text-align:left; padding:7px 9px; border-bottom:1px solid var(--rule); vertical-align:top}
+  th{font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted)}
+  .flow{background:var(--slate-bg); border-left:4px solid var(--slate); border-radius:0 8px 8px 0; padding:10px 14px; margin:8px 0; font-size:14px}
+  .flow b{color:var(--slate)}
+  .keyrow td:first-child{font-weight:600; white-space:nowrap}
+  .pill{display:inline-block; font-size:11px; font-weight:700; padding:1px 7px; border-radius:999px}
+  .pill.move{background:#fbeee7; color:var(--rust-dk)} .pill.copy{background:#eaf4ea; color:var(--green)}
+  footer{margin-top:22px; padding-top:12px; border-top:1px solid var(--rule); font-size:12px; color:var(--muted)}
+  a{color:var(--rust)}
+  @media print{
+    body{background:#fff; padding:0; font-size:11pt}
+    .card{box-shadow:none; border-radius:0; max-width:none; padding:0}
+    .grid{gap:16px}
+    pre,ol.rules li,.flow,table{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <header>
+    <h1><small>Rust → Python · Quick Reference</small>Ownership &amp; Moves</h1>
+    <span class="tagline">Who owns it → who frees it. Enforced at compile time.</span>
+  </header>
+
+  <h2>The three rules</h2>
+  <ol class="rules">
+    <li>Each value has <b>one owner</b>.</li>
+    <li>There can be only <b>one owner at a time</b>.</li>
+    <li>When the owner leaves scope, the value is <b>dropped</b> (freed) — automatically, via <code>drop</code>. You never write <code>free</code>.</li>
+  </ol>
+
+  <div class="grid">
+    <div>
+      <h2>Move vs Copy vs Clone</h2>
+      <table>
+        <thead><tr><th>What</th><th>Heap data</th><th>Source after</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill move">MOVE</span> <code>let b = a;</code></td><td>shared (ptr copied)</td><td><b class="bad">invalid</b></td></tr>
+          <tr><td><span class="pill copy">COPY</span> <code>let b = a;</code></td><td>none (stack only)</td><td><b class="good">still valid</b></td></tr>
+          <tr><td><b>CLONE</b> <code>let b = a.clone();</code></td><td>duplicated (new alloc)</td><td><b class="good">still valid</b></td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px; color:var(--muted)">Auto operations are always cheap. A deep copy never happens unless you write <code>.clone()</code>.</p>
+    </div>
+
+    <div>
+      <h2>Move or Copy? (by type)</h2>
+      <table>
+        <tbody>
+          <tr><td><span class="pill copy">COPY</span></td><td>Stack scalars: integers, <code>f64</code>, <code>bool</code>, <code>char</code>, and tuples of only those — e.g. <code>(i32, i32)</code>.</td></tr>
+          <tr><td><span class="pill move">MOVE</span></td><td>Owns heap/resource: <code>String</code>, <code>Vec&lt;T&gt;</code>, <code>Box&lt;T&gt;</code>, files… and any tuple/struct containing one, e.g. <code>(i32, String)</code>.</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px; color:var(--muted)">Rule: "anything that requires allocation or is a resource" cannot be <code>Copy</code>.</p>
+    </div>
+  </div>
+
+  <h2>Will <code>a</code> still work after <code>let b = a;</code>?</h2>
+  <div class="flow">
+    <b>Is <code>a</code>'s type stack-only (Copy)?</b> &nbsp;→ <span class="good">YES: copied, both valid.</span> &nbsp;|&nbsp; <span class="bad">NO: moved, <code>a</code> is dead → <code>error[E0382]</code>.</span><br>
+    Need both <em>and</em> it's a heap type? &nbsp;→ use <code>a.clone()</code> (pay for a real copy, on purpose).
+  </div>
+
+  <div class="grid">
+    <div>
+      <h2>The classic C/C++ bug → Rust's answer</h2>
+      <table>
+        <thead><tr><th>C/C++ bug</th><th>Rust prevents via</th></tr></thead>
+        <tbody>
+          <tr><td>Forget <code>free</code> (leak)</td><td>Rule 3: auto <code>drop</code> at scope end</td></tr>
+          <tr><td>Use-after-free / dangling ptr</td><td>Moved-from value is invalid → won't compile</td></tr>
+          <tr><td>Double-free</td><td>Rule 2: one owner → exactly one <code>drop</code></td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px"><b>Same idea as C++ RAII / <code>unique_ptr</code></b> — but the language-wide default, compiler-enforced, with zero runtime cost.</p>
+    </div>
+
+    <div>
+      <h2>Snippets</h2>
+<pre><code><span class="cmt">// MOVE — won't compile</span>
+let a = String::from("hi");
+let b = a;          <span class="cmt">// a moved into b</span>
+println!("{a}");    <span class="bad">// E0382: a is dead</span>
+
+<span class="cmt">// COPY — fine</span>
+let x = 5;
+let y = x;          <span class="good">// both valid</span>
+
+<span class="cmt">// CLONE — fine, explicit cost</span>
+let a = String::from("hi");
+let b = a.clone();  <span class="good">// two owners, two buffers</span>
+
+<span class="cmt">// Functions move too</span>
+fn shout(t: String) { /* t owned, dropped here */ }
+let s = String::from("hi");
+shout(s);
+println!("{s}");    <span class="bad">// E0382 — fixed by borrowing (next)</span></code></pre>
+    </div>
+  </div>
+
+  <footer>
+    Source: <a href="https://doc.rust-lang.org/book/ch04-01-what-is-ownership.html">The Rust Programming Language, Ch. 4.1 — "What Is Ownership?"</a>
+    &nbsp;·&nbsp; Companion to Lesson 1. &nbsp; Next: <b>Borrowing &amp; references</b> (<code>&amp;</code>) — use a value without taking it.
+  </footer>
+</div>
+</body>
+</html>
