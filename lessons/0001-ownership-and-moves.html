@@ -203,17 +203,17 @@
 <div class="example">
 <pre><code>fn main() {
     {
-        let s = String::from("hello"); <span class="cmt">// s owns heap text from here</span>
-        <span class="cmt">// ... use s ...</span>
+        let s = String::from("hello"); <span class="cmt">// s owns the heap text from here</span>
+        println!("{s}");               <span class="cmt">// ... use s ...</span>
     } <span class="cmt">// &lt;- s goes out of scope: drop(s) runs, heap freed. Automatically.</span>
 }</code></pre>
 <button class="run-btn">▶ Run on the Playground</button>
-<p class="hint">It compiles and does nothing visible — that's the point. The free happened, and you didn't write it.</p>
+<p class="hint">It compiles cleanly and prints <code>hello</code> — then at the inner <code>}</code> the string is freed <em>for you</em>. You see the program run, but you never see the free. That silent, automatic free is the point.</p>
 </div>
 
 <h2><span class="n">4</span>The surprise: assignment can <em>move</em></h2>
 
-<p>Here's where Rust diverges from everything you know. Watch what happens when you assign one <code>String</code> to another:</p>
+<p>Here's where Rust diverges from everything you know. <strong>Predict first</strong> — will this compile? — then hit Run and read what comes back:</p>
 
 <div class="example">
 <pre><code>fn main() {
@@ -222,6 +222,8 @@
 
     println!("{s1}, world!"); <span class="err">// will this compile?</span>
 }</code></pre>
+<button class="run-btn">▶ Run on the Playground</button>
+<p class="hint">⚠ Unlike the example above, this one is <strong>meant to fail to compile</strong> — the compiler error <em>is</em> the lesson, not a mistake. We break it down right below.</p>
 </div>
 
 <p>In C++, <code>s2 = s1</code> would copy the struct's three fields, leaving two pointers to the same heap text — and at scope end <em>both</em> destructors would <code>free</code> it. That's a <strong>double-free</strong>. The book is explicit about the danger:</p>
@@ -243,13 +245,19 @@
 
 <div class="example">
 <pre><code><span class="err">error[E0382]: borrow of moved value: `s1`</span>
- --> src/main.rs:5:15
+ --> src/main.rs:5:16
   |
+2 |     let s1 = String::from("hello");
+  |         -- move occurs because `s1` has type `String`, which does not implement the `Copy` trait
 3 |     let s2 = s1;
   |              -- value moved here
 4 |
 5 |     println!("{s1}, world!");
-  |               <span class="err">^^^^ value borrowed here after move</span></code></pre>
+  |                <span class="err">^^ value borrowed here after move</span>
+  |
+<span class="ok">help: consider cloning the value if the performance cost is acceptable</span>
+  |
+3 |     let s2 = s1<span class="ok">.clone()</span>;</code></pre>
 </div>
 
 <p>Note the design choice this encodes: <strong>Rust never deep-copies your data automatically.</strong> Any automatic operation is cheap (just a few stack words).<sup><a href="#r1">1</a></sup> If you <em>want</em> a real deep copy, you ask for it by name with <code>.clone()</code> — more on that in the exercises.</p>

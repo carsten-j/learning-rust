@@ -8,6 +8,8 @@
 ## Cadence & format
 - Lessons that work: **predict-then-verify** — state a concept, show a snippet, have him predict whether it compiles, then run it to get immediate feedback.
 - Keep each lesson to ONE idea with a tangible win.
+- **Runnable snippets must do exactly what the prose claims — including being warning-clean.** A snippet billed as "it just compiles" that throws even a `warning: unused variable` reads as broken and undercuts trust. Verify every "▶ Run" snippet against the Playground API (`POST https://play.rust-lang.org/execute`) before shipping. (Carsten flagged this on lesson 1, 2026-06-11.)
+- A snippet that's **meant to fail** (the predict-then-verify "no") must be **labelled as intentional right at the example** — a visible "⚠ meant to fail to compile — the error *is* the lesson" note — so the failure feels like the point, not a bug.
 
 ## Toolchain state (as of 2026-06-08)
 - **No Rust installed** (`rustc`/`cargo`/`rustup` all absent). Early lessons use the **Rust Playground** — one-click "Run" buttons in the HTML pre-fill it via `?code=`.
